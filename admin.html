@@ -1,0 +1,26 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AI Ventrax CMS</title>
+<style>
+body{margin:0;background:#071126;color:#eef4ff;font:16px Arial}.wrap{width:min(94%,900px);margin:auto}header{padding:20px 0;border-bottom:1px solid #26385e}h1{margin:0}.panel{background:#102044;border:1px solid #26385e;border-radius:14px;padding:20px;margin:25px 0}label{display:block;margin:14px 0 6px;font-weight:700}input,select,textarea{width:100%;padding:11px;border-radius:8px;border:1px solid #304568;background:#071126;color:#fff;box-sizing:border-box}textarea{min-height:180px}.row{display:grid;grid-template-columns:1fr 1fr;gap:15px}.btn{margin-top:15px;padding:11px 16px;border:0;border-radius:8px;font-weight:800;background:#4edbff;color:#061024}.danger{background:#ef7777}.muted{color:#aab8d4}.post{padding:14px 0;border-bottom:1px solid #26385e}.actions{display:flex;gap:8px;flex-wrap:wrap}@media(max-width:650px){.row{grid-template-columns:1fr}}
+</style></head><body><header><div class="wrap"><h1>AI Ventrax CMS</h1><div class="muted">Admin dashboard</div></div></header>
+<main class="wrap">
+<div id="login" class="panel"><h2>Admin Login</h2><p class="muted">Use the admin password configured in your server environment.</p><input id="pw" type="password" placeholder="Admin password"><button class="btn" onclick="login()">Login</button><p id="lm"></p></div>
+<div id="dash" style="display:none">
+<div class="panel"><h2 id="formTitle">Add New Article</h2><form id="form">
+<input type="hidden" id="id"><label>Title</label><input id="title" required>
+<div class="row"><div><label>Category</label><select id="category"><option>AI News</option><option>AI Tools</option><option>Technology</option><option>Tutorials</option><option>Reviews</option><option>Cybersecurity</option><option>Online Earning</option></select></div><div><label>Featured image URL</label><input id="image" placeholder="https://..."></div></div>
+<label>Excerpt</label><textarea id="excerpt" style="min-height:90px"></textarea>
+<label>Article content (HTML allowed)</label><textarea id="content"></textarea>
+<div class="row"><div><label>Author</label><input id="author" value="AI Ventrax"></div><div><label>Status</label><select id="status"><option value="published">Published</option><option value="draft">Draft</option></select></div></div>
+<button class="btn" type="submit">Save Article</button> <button class="btn" type="button" onclick="resetForm()">Clear</button></form><p id="msg"></p></div>
+<div class="panel"><h2>Articles</h2><div id="posts"></div></div></div>
+</main>
+<script>
+let token='';
+async function login(){let pw=document.getElementById('pw').value,r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw})});let j=await r.json();if(!r.ok){document.getElementById('lm').textContent=j.error||'Login failed';return}token=j.token;document.getElementById('login').style.display='none';document.getElementById('dash').style.display='block';load()}
+async function load(){let r=await fetch('/api/admin/posts',{headers:{Authorization:'Bearer '+token}}),p=await r.json();document.getElementById('posts').innerHTML=p.map(x=>`<div class="post"><b>${esc(x.title)}</b><div class="muted">${esc(x.category)} • ${esc(x.status)} • ${esc(x.date||'')}</div><div class="actions"><button class="btn" onclick='edit(${JSON.stringify(x)})'>Edit</button><button class="btn danger" onclick="del('${x.id}')">Delete</button></div></div>`).join('')||'<p class="muted">No articles yet.</p>'}
+function esc(s=''){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function edit(x){['id','title','category','image','excerpt','content','author','status'].forEach(k=>document.getElementById(k).value=x[k]||'');document.getElementById('formTitle').textContent='Edit Article'}
+function resetForm(){document.getElementById('form').reset();document.getElementById('id').value='';document.getElementById('author').value='AI Ventrax';document.getElementById('formTitle').textContent='Add New Article'}
+document.getElementById('form').onsubmit=async e=>{e.preventDefault();let o={};['id','title','category','image','excerpt','content','author','status'].forEach(k=>o[k]=document.getElementById(k).value);let method=o.id?'PUT':'POST';let r=await fetch('/api/admin/posts',{method,headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify(o)});let j=await r.json();document.getElementById('msg').textContent=j.error||'Saved';if(r.ok){resetForm();load()}}
+async function del(id){if(!confirm('Delete this article?'))return;await fetch('/api/admin/posts/'+id,{method:'DELETE',headers:{Authorization:'Bearer '+token}});load()}
+</script></body></html>
